@@ -7,13 +7,14 @@ import { INotificationService } from '../../services/INotificationService';
 import { InfoState } from '../model/InfoState';
 import { LogKind } from '../../tools/logger/LogKind';
 import { RecordingState } from '../model/RecordingState';
+import Worker from 'worker-loader!./to64.worker';
 
 export class HomeHook extends Hook<HomeState> {
 	private apiSvc: IApiService;
 	private notificationSvc: INotificationService;
 	private socket: WebSocket;
-	private _socket: string = '{{socket}}';
-	private encodedImage: string;
+	private socketAddress: string = '{{socket}}';
+	private worker;
 
 	constructor(d: [HomeState, StateUpdater<HomeState>]) {
 		super(d[0], d[1]);
@@ -21,6 +22,15 @@ export class HomeHook extends Hook<HomeState> {
 		this.notificationSvc = Singletons.Load<INotificationService>(SingletonKey.notification);
 		this.status('Robot/status');
 		document.body.style.backgroundImage = `url(${this.state.currentImage})`;
+		this.worker = new Worker();
+		this.worker.onmessage = (ev: MessageEvent) => {
+			const imgData = URL.createObjectURL(new Blob([ ev.data as Blob ], { type: 'image/jpg' }));
+			const img = new Image();
+			img.src = imgData;
+			img.onload = () => {
+				document.body.style.backgroundImage = `url(${imgData})`;
+			};
+		};
 	}
 
 	static defaultState(): HomeState {
@@ -78,17 +88,14 @@ export class HomeHook extends Hook<HomeState> {
 			this.update((e) => {
 				e.recordingState = RecordingState.LOADING;
 			});
-			this.socket = new WebSocket(this._socket);
+			this.socket = new WebSocket(this.socketAddress);
 			this.socket.onopen = (ev: MessageEvent) => {
 				this.update((e) => {
 					e.recordingState = RecordingState.ON;
 				});
 				this.socket.onmessage = (ev: MessageEvent) => {
-					this.encodedImage = ev.data;
+					this.worker.postMessage(ev.data);
 				};
-				setTimeout(() => {
-					this.loadImg();
-				}, 1000);
 			};
 
 			this.socket.onerror = (ev: MessageEvent) => {
@@ -104,24 +111,6 @@ export class HomeHook extends Hook<HomeState> {
 					e.recordingState = RecordingState.OFF;
 				});
 			};
-		}
-	}
-
-	private loadImg() {
-		if (this.encodedImage) {
-			const data = atob(this.encodedImage);
-			const array = Uint8Array.from(data, (b) => b.charCodeAt(0));
-			const imgData = URL.createObjectURL(new Blob([ array ], { type: 'image/jpg' }));
-			const img = new Image();
-			img.src = imgData;
-			img.onload = () => {
-				document.body.style.backgroundImage = `url(${imgData})`;
-				if (this.state.recordingState === RecordingState.ON) {
-					this.loadImg();
-				}
-			};
-		} else if (this.state.recordingState === RecordingState.ON) {
-			this.loadImg();
 		}
 	}
 

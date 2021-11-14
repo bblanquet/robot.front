@@ -17,10 +17,6 @@ module.exports = (env) => {
 		module: {
 			rules: [
 				{
-					test: /\.worker\.js$/,
-					use: { loader: 'worker-loader' }
-				},
-				{
 					test: /\.(scss|css)$/,
 					use: [ 'style-loader', 'css-loader' ]
 				},
