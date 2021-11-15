@@ -4,11 +4,11 @@ body {
 	height: 100%;
 	overflow: hidden;
 	margin: 0;
-	background-color: #ff3333;
-	-webkit-backface-visibility: hidden;
-	-moz-backface-visibility: hidden;
-	-ms-backface-visibility: hidden;
+	background-color: #afafaf;
 	background-repeat: no-repeat;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
 	background-size: cover;
 }
 

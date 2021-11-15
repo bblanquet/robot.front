@@ -14,6 +14,7 @@ export class HomeHook extends Hook<HomeState> {
 	private notificationSvc: INotificationService;
 	private socket: WebSocket;
 	private socketAddress: string = '{{socket}}';
+	private img: HTMLImageElement = new Image();
 	private worker;
 
 	constructor(d: [HomeState, StateUpdater<HomeState>]) {
@@ -25,10 +26,11 @@ export class HomeHook extends Hook<HomeState> {
 		this.worker = new Worker();
 		this.worker.onmessage = (ev: MessageEvent) => {
 			const imgData = URL.createObjectURL(new Blob([ ev.data as Blob ], { type: 'image/jpg' }));
-			const img = new Image();
-			img.src = imgData;
-			img.onload = () => {
-				document.body.style.backgroundImage = `url(${imgData})`;
+			this.img.src = imgData;
+			this.img.onload = () => {
+				this.img.decode().then(() => {
+					document.body.style.backgroundImage = `url(${imgData})`;
+				});
 			};
 		};
 	}
